@@ -92,8 +92,12 @@ test.describe('organizing PDFs', () => {
     await expect(cards(page)).toHaveCount(3)
 
     await cards(page).nth(0).getByRole('button', { name: /Reorder page 1/ }).focus()
+    // dnd-kit attaches its key listeners asynchronously, so wait for each announcement before the next key.
+    const live = page.locator('[id^="DndLiveRegion"]')
     await page.keyboard.press('Space')
+    await expect(live).toContainText('Page 1 is over position 1')
     await page.keyboard.press('ArrowRight')
+    await expect(live).toContainText('Page 1 is over position 2')
     await page.keyboard.press('Space')
     await expect(page.locator('.sr-only[role="status"]')).toContainText('Moved page 1 to position 2')
     expect(await pageOrder(page)).toEqual(['alpha.pdfp. 2', 'alpha.pdfp. 1', 'alpha.pdfp. 3'])
@@ -111,8 +115,9 @@ test.describe('organizing PDFs', () => {
     await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2)
     await page.mouse.down()
     await page.mouse.move(target!.x + target!.width / 2, target!.y + 60, { steps: 12 })
+    await expect(page.locator('.page-card.is-overlay')).toBeVisible()
     await page.mouse.up()
-    expect((await pageOrder(page))[2]).toBe('alpha.pdfp. 1')
+    await expect.poll(async () => (await pageOrder(page))[2]).toBe('alpha.pdfp. 1')
   })
 
   test('keeps cuts positional when pages are reordered', async ({ page, isMobile }) => {
